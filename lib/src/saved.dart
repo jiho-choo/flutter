@@ -1,12 +1,8 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
-import 'package:testing_app/src/random_list.dart';
+import 'package:testing_app/src/bloc.dart';
 
 class SavedList extends StatefulWidget {
-
-  SavedList({@required this.saved});
-  final Set<WordPair> saved;
-
   @override
   _SavedListState createState() => _SavedListState();
 }
@@ -23,17 +19,29 @@ class _SavedListState extends State<SavedList> {
   }
 
   Widget _buildList() {
-    return ListView.builder(itemBuilder: (context, index) {
-      if (index.isOdd) {
-        return Divider();
+    return StreamBuilder<Set<WordPair>>(
+      stream: bloc.savedStream,
+      builder: (context, snapshot) {
+        var saved = Set<WordPair>();
+        if (snapshot.hasData) {
+          saved.addAll(snapshot.data);
+        } else {
+          bloc.addCurrentSaved;
+        }
+
+        return ListView.builder(itemBuilder: (context, index) {
+          if (index.isOdd) {
+            return Divider();
+          }
+
+          var realIndex = index ~/ 2;
+
+          return (snapshot.hasData) ? _buildRow(snapshot.data.toList()[realIndex]) : null;
+
+        },
+        itemCount: (snapshot.hasData) ? snapshot.data.length*2 : 0,
+        );
       }
-
-      var realIndex = index ~/ 2;
-
-      return _buildRow(widget.saved.toList()[realIndex]);
-
-    },
-    itemCount: widget.saved.length*2,
     );
   }
 
@@ -41,11 +49,7 @@ class _SavedListState extends State<SavedList> {
     return ListTile(
       title: Text(wordPair.asPascalCase, textScaleFactor: 1.5),
       onTap: () {
-        setState(() {
-          widget.saved.remove(wordPair);
-          // Navigator.pop(context, true);
-          // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => RandomList()));
-        });
+        bloc.addToOrRemoveFromSavedList(wordPair);
       },
     );
   }
